@@ -1,0 +1,100 @@
+@import url('https://fonts.googleapis.com/css2?family=Exo+2&display=swap');
+
+:root {
+    --theme: #005;
+    --theme__light: #55a;
+}
+
+body {
+    margin: 0rem;
+    padding: 0rem;
+    background-color: #111;
+    color: #fff;
+    font-family: 'Exo 2', sans-serif;
+    font-size: 1rem;
+}
+
+.-button {
+    padding: 1rem;
+    background-color: #fff;
+    border: none;
+    border-radius: 1rem;
+    color: #000;
+    cursor: pointer;
+    font-family: 'Exo 2', sans-serif;
+    font-size: 1rem;
+    transition-duration: 0.1s;
+}
+
+.-button:disabled {
+    color: #aaa;
+    cursor: not-allowed;
+}
+
+.-form {
+    margin: 0rem;
+    margin-block-end: 0rem;
+}
+
+.-input {
+    padding: 1rem;
+    width: 100%;
+    background-color: transparent;
+    border: none;
+    border-bottom: 1px solid #fff;
+    color: #fff;
+    font-family: 'Exo 2', sans-serif;
+    font-size: 1rem;
+    outline: none;
+}
+
+.-center {
+    text-align: center;
+}
+
+.-center__flex {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.-title {
+    font-size: 1.5rem;
+}
+
+.-subtitle {
+    color: #aaa;
+    font-size: 0.7rem;
+}
+
+.-header {
+    display: grid;
+    grid-template-columns: repeat(3, max-content) 1fr max-content;
+    background-color: var(--theme);
+}
+
+.-header__title {
+    display: block;
+    padding: 1rem;
+    color: #fff;
+    cursor: pointer;
+    font-family: 'Exo 2', sans-serif;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.-header__tab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    color: #fff;
+    cursor: pointer;
+    font-family: 'Exo 2', sans-serif;
+    text-decoration: none;
+    transition: background-color 0.1s;
+}
+
+.-header__tab:hover {
+    background-color: var(--theme__light);
+}
