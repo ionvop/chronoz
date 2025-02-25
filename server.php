@@ -1,26 +1,41 @@
 <?php
 
 include("common.php");
-debug();
+Debug();
 
 if (isset($_POST["method"])) {
     switch ($_POST["method"]) {
         case "login":
-            login();
+            Login();
+            break;
+        case "verify":
+            Verify();
+            break;
+        case "register":
+            Register();
+            break;
+        case "logout":
+            Logout();
             break;
         default:
-            defaultMethod();
+            DefaultMethod();
             break;
     }
 } else {
-    defaultMethod();
+    DefaultMethod();
 }
 
-function login() {
+function Login() {
     global $BREVO_API_KEY;
+
+    if (filter_var($_POST["email"], FILTER_VALIDATE_EMAIL) == false) {
+        Alert("Invalid email");
+    }
+
     $code = substr(md5(time()), 0, 5);
     session_start();
     $_SESSION["code"] = $code;
+    $_SESSION["email"] = $_POST["email"];
 
     $headers = [
         "Content-Type: application/json",
@@ -42,43 +57,34 @@ function login() {
         "subject" => "ChronoZ login code"
     ];
 
-    $res = sendCurl("https://api.brevo.com/v3/smtp/email", "POST", $headers, json_encode($body));
+    echo <<<HTML
+        {$code}<br><br>
+        <a href="login/verify/">
+            <button>
+                Verify
+            </button>
+        </a>
+    HTML;
+
+    exit();
+
+    $res = SendCurl("https://api.brevo.com/v3/smtp/email", "POST", $headers, json_encode($body));
     $res = json_decode($res);
 
     if ($res == false) {
-        alert("Failed to send email");
+        Alert("Failed to send email");
     }
 
     header("Location: login/verify/");
+    exit();
 }
 
-function verify() {
+function Verify() {
     $db = new SQLite3("database.db");
-
     session_start();
 
-    if (isset($_SESSION["code"]) == false) {
-        http_response_code(401);
-
-        echo json_encode([
-            "error" => "Invalid code"
-        ]);
-
-        return;
-    }
-
-    $code = $_SESSION["code"];
-    session_unset();
-    session_destroy();
-
-    if ($_POST["code"] != $code) {
-        http_response_code(401);
-
-        echo json_encode([
-            "error" => "Invalid code"
-        ]);
-
-        return;
+    if ($_POST["code"] != $_SESSION["code"]) {
+        Alert("Invalid code");
     }
 
     $query = <<<SQL
@@ -86,116 +92,102 @@ function verify() {
     SQL;
 
     $stmt = $db->prepare($query);
-    $stmt->bindValue(":email", $_POST["email"]);
+    $stmt->bindValue(":email", $_SESSION["email"]);
     $result = $stmt->execute();
-
-    if ($result == false) {
-        http_response_code(500);
-
-        echo json_encode([
-            "error" => "Failed to get user"
-        ]);
-
-        return;
-    }
-
     $user = $result->fetchArray();
-    $session = uniqid("session");
 
     if ($user == false) {
-        if (strlen($_POST["username"]) > 0) {
-            if (strlen($_POST["username"]) < 4) {
-                http_response_code(400);
-        
-                echo json_encode([
-                    "error" => "Username is too short. Min length is 4"
-                ]);
-        
-                return;
-            }
-
-            if (strlen($_POST["username"]) > 20) {
-                http_response_code(400);
-        
-                echo json_encode([
-                    "error" => "Username is too long. Max length is 20"
-                ]);
-        
-                return;
-            }
-
-            if (preg_match("/[^a-zA-Z0-9-_]/", $_POST["username"])) {
-                http_response_code(400);
-        
-                echo json_encode([
-                    "error" => "Username can only contain alphanumeric characters, hyphens, and underscores"
-                ]);
-        
-                return;
-            }
-    
-            $query = <<<SQL
-                INSERT INTO `users` (`email`, `username`, `session`) VALUES (:email, :username, :session)
-            SQL;
-    
-            $stmt = $db->prepare($query);
-            $stmt->bindValue(":email", $_POST["email"]);
-            $stmt->bindValue(":username", $_POST["username"]);
-            $stmt->bindValue(":session", uniqid("session"));
-            $result = $stmt->execute();
-    
-            if ($result == false) {
-                http_response_code(400);
-    
-                echo json_encode([
-                    "error" => "Failed to create user. Maybe the username is already taken?"
-                ]);
-    
-                return;
-            }
-    
-            setcookie("session", uniqid("session"), time() + 86400 * 30);
-            http_response_code(200);
-            return;
-        }
-
-        http_response_code(404);
-
-        echo json_encode([
-            "error" => "Unregistered email"
-        ]);
-
-        return;
+        header("Location: register/");
+        exit();
     }
 
+    $session = uniqid("session");
+
     $query = <<<SQL
-        UPDATE `users` SET `session` = :session WHERE `email` = :email
+        UPDATE `users` SET `session` = :session WHERE `id` = :id
     SQL;
 
     $stmt = $db->prepare($query);
-    $stmt->bindValue(":email", $_POST["email"]);
     $stmt->bindValue(":session", $session);
-    $result = $stmt->execute();
-
-    if ($result == false) {
-        http_response_code(500);
-
-        echo json_encode([
-            "error" => "Failed to update user"
-        ]);
-
-        return;
-    }
-
-    setcookie("session", $session, time() + 86400 * 30);
-    http_response_code(200);
-    return;
+    $stmt->bindValue(":id", $user["id"]);
+    $stmt->execute();
+    setcookie("session", $session, time() + (86400 * 30));
+    header("Location: ./");
+    exit();
 }
 
-function defaultMethod() {
-    http_response_code(400);
+function Register() {
+    $db = new SQLite3("database.db");
 
-    echo json_encode([
-        "error" => "Invalid method"
+    if (strlen($_POST["username"]) < 4) {
+        Alert("Username must be at least 4 characters long");
+    }
+
+    if (strlen($_POST["password"]) > 20) {
+        Alert("Password must be at most 20 characters long");
+    }
+
+    if (preg_match("/[^a-zA-Z0-9-_]/", $_POST["username"])) {
+        Alert("Username can only contain alphanumerics, hyphens, and underscores");
+    }
+
+    session_start();
+
+    $query = <<<SQL
+        SELECT * FROM `users` WHERE `username` = :username OR `email` = :email
+    SQL;
+
+    $stmt = $db->prepare($query);
+    $stmt->bindValue(":username", $_POST["username"]);
+    $stmt->bindValue(":email", $_SESSION["email"]);
+    $result = $stmt->execute();
+    $user = $result->fetchArray();
+
+    if ($user != false) {
+        Alert("Username or email already exists");
+    }
+
+    $session = uniqid("session");
+
+    $query = <<<SQL
+        INSERT INTO `users` (`username`, `email`, `session`)
+        VALUES (:username, :email, :session)
+    SQL;
+
+    $stmt = $db->prepare($query);
+    $stmt->bindValue(":username", $_POST["username"]);
+    $stmt->bindValue(":email", $_SESSION["email"]);
+    $stmt->bindValue(":session", $session);
+    $stmt->execute();
+    setcookie("session", $session, time() + (86400 * 30));
+    header("Location: ./");
+    exit();
+}
+
+function Logout() {
+    $db = new SQLite3("database.db");
+    $user = GetUser();
+
+    if ($user == false) {
+        setcookie("session", "", time() - 3600);
+        header("Location: ./");
+    }
+
+    $query = <<<SQL
+        UPDATE `users` SET `session` = NULL WHERE `id` = :id
+    SQL;
+
+    $stmt = $db->prepare($query);
+    $stmt->bindValue(":id", $user["id"]);
+    $stmt->execute();
+    setcookie("session", "", time() - 3600);
+    header("Location: ./");
+    exit();
+}
+
+function DefaultMethod() {
+    Breakpoint([
+        "post" => $_POST,
+        "files" => $_FILES
     ]);
 }
