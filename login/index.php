@@ -2,14 +2,14 @@
 
 chdir("../");
 include("common.php");
-debug();
+Debug();
 
 ?>
 
 <html>
     <head>
         <title>
-
+            Login | ChronoZ
         </title>
         <base href="../">
         <link rel="stylesheet" href="style.css">
@@ -55,7 +55,7 @@ debug();
     </head>
     <body>
         <div class="login__main">
-            <?=setHeader()?>
+            <?=SetHeader()?>
             <div class="content">
                 <div></div>
                 <form class="-form form" action="server.php" method="post" enctype="multipart/form-data">
