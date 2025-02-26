@@ -17,6 +17,9 @@ if (isset($_POST["method"])) {
         case "logout":
             Logout();
             break;
+        case "editProfile":
+            EditProfile();
+            break;
         default:
             DefaultMethod();
             break;
@@ -101,7 +104,7 @@ function Verify() {
         exit();
     }
 
-    $session = uniqid("session");
+    $session = uniqid("session-");
 
     $query = <<<SQL
         UPDATE `users` SET `session` = :session WHERE `id` = :id
@@ -147,7 +150,7 @@ function Register() {
         Alert("Username or email already exists");
     }
 
-    $session = uniqid("session");
+    $session = uniqid("session-");
 
     $query = <<<SQL
         INSERT INTO `users` (`username`, `email`, `session`)
@@ -182,6 +185,64 @@ function Logout() {
     $stmt->execute();
     setcookie("session", "", time() - 3600);
     header("Location: ./");
+    exit();
+}
+
+function EditProfile() {
+    $db = new SQLite3("database.db");
+    $user = GetUser();
+
+    if ($user == false) {
+        Alert("Unauthorized");
+    }
+
+    if ($_POST["username"] != $user["username"]) {
+        $query = <<<SQL
+            SELECT * FROM `users` WHERE `username` = :username
+        SQL;
+
+        $stmt = $db->prepare($query);
+        $stmt->bindValue(":username", $_POST["username"]);
+        $result = $stmt->execute();
+        $user = $result->fetchArray();
+
+        if ($user != false) {
+            Alert("Username already exists");
+        }
+
+        $query = <<<SQL
+            UPDATE `users` SET `username` = :username WHERE `id` = :id
+        SQL;
+
+        $stmt = $db->prepare($query);
+        $stmt->bindValue(":username", $_POST["username"]);
+        $stmt->bindValue(":id", $user["id"]);
+        $stmt->execute();
+    }
+
+    if ($_FILES["avatar"]["error"] != 4) {
+        $filename = RenameFile($_FILES["avatar"]["name"], uniqid("avatar-"));
+        move_uploaded_file($_FILES["avatar"]["tmp_name"], "uploads/avatars/{$filename}");
+
+        $query = <<<SQL
+            UPDATE `users` SET `avatar` = :avatar WHERE `id` = :id
+        SQL;
+
+        $stmt = $db->prepare($query);
+        $stmt->bindValue(":avatar", $filename);
+        $stmt->bindValue(":id", $user["id"]);
+        $stmt->execute();
+    }
+
+    $query = <<<SQL
+        UPDATE `users` SET `description` = :description WHERE `id` = :id
+    SQL;
+
+    $stmt = $db->prepare($query);
+    $stmt->bindValue(":description", $_POST["description"]);
+    $stmt->bindValue(":id", $user["id"]);
+    $stmt->execute();
+    header("Location: user/?id={$user['username']}");
     exit();
 }
 
