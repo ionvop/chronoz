@@ -87,6 +87,14 @@ function Alert($message, $redirect = "") {
     exit();
 }
 
+function RenameFile($input, $new) {
+    $inputExt = explode(".", $input);
+    $inputExt = end($inputExt);
+    $inputExt = strtolower($inputExt);
+    $inputExt = ".".$inputExt;
+    return $new.$inputExt;
+}
+
 function SetHeader() {
     $user = GetUser();
 
