@@ -2,6 +2,7 @@
 
 chdir("../");
 include("common.php");
+include("lib/Parsedown.php");
 Debug();
 $user = GetUser();
 
@@ -14,6 +15,8 @@ $target = GetTarget($_GET["id"]);
 if ($target == false) {
     Alert("User not found");
 }
+
+$Parsedown = new Parsedown();
 
 ?>
 
@@ -60,6 +63,14 @@ if ($target == false) {
                 width: 2rem;
                 height: 2rem;
             }
+
+            .description {
+                padding: 1rem;
+            }
+
+            .description img {
+                max-width: 100%;
+            }
         </style>
     </head>
     <body>
@@ -81,6 +92,9 @@ if ($target == false) {
                             <?=Icon("settings")?>
                         </a>
                     </div>
+                </div>
+                <div class="description">
+                    <?=$Parsedown->text($target["description"])?>
                 </div>
             </div>
         </div>
