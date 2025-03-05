@@ -183,6 +183,10 @@ function GetUser() {
     $result = $stmt->execute();
     $user = $result->fetchArray();
 
+    if ($user == false) {
+        return false;
+    }
+
     if ($user["session"] == null) {
         return false;
     }
