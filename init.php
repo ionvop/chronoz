@@ -12,9 +12,11 @@ $query = <<<SQL
         `id` INTEGER PRIMARY KEY AUTOINCREMENT,
         `username` TEXT UNIQUE,
         `email` TEXT UNIQUE,
-        `avatar` TEXT DEFAULT "default.jpg",
-        `session` TEXT UNIQUE,
-        `time` INTEGER DEFAULT (unixepoch()))
+        avatar TEXT DEFAULT "default.jpg",
+        description TEXT DEFAULT '',
+        session TEXT UNIQUE,
+        `time` INTEGER DEFAULT (unixepoch())
+    )
 SQL;
 
 $sql->exec($query);
