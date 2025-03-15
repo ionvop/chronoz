@@ -164,6 +164,14 @@ function Icon($icon) {
             return <<<HTML
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" fill="currentColor"><path d="M433-80q-27 0-46.5-18T363-142l-9-66q-13-5-24.5-12T307-235l-62 26q-25 11-50 2t-39-32l-47-82q-14-23-8-49t27-43l53-40q-1-7-1-13.5v-27q0-6.5 1-13.5l-53-40q-21-17-27-43t8-49l47-82q14-23 39-32t50 2l62 26q11-8 23-15t24-12l9-66q4-26 23.5-44t46.5-18h94q27 0 46.5 18t23.5 44l9 66q13 5 24.5 12t22.5 15l62-26q25-11 50-2t39 32l47 82q14 23 8 49t-27 43l-53 40q1 7 1 13.5v27q0 6.5-2 13.5l53 40q21 17 27 43t-8 49l-48 82q-14 23-39 32t-50-2l-60-26q-11 8-23 15t-24 12l-9 66q-4 26-23.5 44T527-80h-94Zm49-260q58 0 99-41t41-99q0-58-41-99t-99-41q-59 0-99.5 41T342-480q0 58 40.5 99t99.5 41Z"/></svg>
             HTML;
+        case "person_add":
+            return <<<HTML
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" fill="currentColor"><path d="M720-520h-80q-17 0-28.5-11.5T600-560q0-17 11.5-28.5T640-600h80v-80q0-17 11.5-28.5T760-720q17 0 28.5 11.5T800-680v80h80q17 0 28.5 11.5T920-560q0 17-11.5 28.5T880-520h-80v80q0 17-11.5 28.5T760-400q-17 0-28.5-11.5T720-440v-80Zm-360 40q-66 0-113-47t-47-113q0-66 47-113t113-47q66 0 113 47t47 113q0 66-47 113t-113 47ZM40-240v-32q0-34 17.5-62.5T104-378q62-31 126-46.5T360-440q66 0 130 15.5T616-378q29 15 46.5 43.5T680-272v32q0 33-23.5 56.5T600-160H120q-33 0-56.5-23.5T40-240Z"/></svg>
+            HTML;
+        case "flag":
+            return <<<HTML
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" fill="currentColor"><path d="M280-400v240q0 17-11.5 28.5T240-120q-17 0-28.5-11.5T200-160v-600q0-17 11.5-28.5T240-800h287q14 0 25 9t14 23l10 48h184q17 0 28.5 11.5T800-680v320q0 17-11.5 28.5T760-320H553q-14 0-25-9t-14-23l-10-48H280Z"/></svg>
+            HTML;
     }
 }
 
@@ -180,8 +188,7 @@ function GetUser() {
 
     $stmt = $db->prepare($query);
     $stmt->bindValue(":session", $_COOKIE["session"]);
-    $result = $stmt->execute();
-    $user = $result->fetchArray();
+    $user = $stmt->execute()->fetchArray();
 
     if ($user == false) {
         return false;
@@ -191,6 +198,14 @@ function GetUser() {
         return false;
     }
 
+    $query = <<<SQL
+        UPDATE `users` SET `last_seen` = :last_seen WHERE `id` = :id
+    SQL;
+
+    $stmt = $db->prepare($query);
+    $stmt->bindValue(":last_seen", time());
+    $stmt->bindValue(":id", $user["id"]);
+    $stmt->execute();
     return $user;
 }
 
@@ -203,7 +218,33 @@ function GetTarget($username) {
 
     $stmt = $db->prepare($query);
     $stmt->bindValue(":username", $username);
-    $result = $stmt->execute();
-    $user = $result->fetchArray();
+    $user = $stmt->execute()->fetchArray();
     return $user;
+}
+
+function TimeAgo($timestamp) {
+    $now = time(); // Current Unix timestamp
+    $diff = $now - $timestamp; // Difference in seconds
+
+    if ($diff < 60) {
+        return "less than a minute ago";
+    } elseif ($diff < 3600) {
+        $minutes = floor($diff / 60);
+        return $minutes . " minute" . ($minutes > 1 ? "s" : "") . " ago";
+    } elseif ($diff < 86400) {
+        $hours = floor($diff / 3600);
+        return $hours . " hour" . ($hours > 1 ? "s" : "") . " ago";
+    } elseif ($diff < 604800) { // Less than 7 days
+        $days = floor($diff / 86400);
+        return $days . " day" . ($days > 1 ? "s" : "") . " ago";
+    } elseif ($diff < 2592000) { // Less than ~30 days (approx 1 month)
+        $weeks = floor($diff / 604800);
+        return $weeks . " week" . ($weeks > 1 ? "s" : "") . " ago";
+    } elseif ($diff < 31536000) { // Less than 1 year
+        $months = floor($diff / 2592000);
+        return $months . " month" . ($months > 1 ? "s" : "") . " ago";
+    } else {
+        $years = floor($diff / 31536000);
+        return $years . " year" . ($years > 1 ? "s" : "") . " ago";
+    }
 }
